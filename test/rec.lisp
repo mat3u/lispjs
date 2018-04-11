@@ -1,12 +1,12 @@
 (!
     (defun printN (n) (
         (if (eq 0 n)
-            (print (join "!" n n))
+            (println n)
             (!
-                (print n)
+                (println n)
                 (printN (dec n))
             )
         ))
     )
-    (printN 1)
+    (printN 5)
 )

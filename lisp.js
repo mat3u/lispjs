@@ -113,47 +113,7 @@ const interpreter = (initial) => {
             return result;
         }
     };
-
-    const evalS = (S, ast, variables) => {
-        if (!!S.func) {
-            if (!functions[S.func]) {
-                const varvalue = evalS({
-                    var: S.func
-                }, ast, variables);
-
-                if (varvalue) {
-                    return varvalue;
-                }
-
-                throw `Function '${S.func}' is undefined!`;
-            }
-
-            const f = functions[S.func];
-
-            const toVarFun = v => {
-                const f = vars => eval(v, vars);
-
-                f.__def__ = v;
-
-                return f;
-            };
-
-            const args = _.drop(ast, 1).map(toVarFun);
-
-            return nullify(f.call(null, variables, ...args));
-        }
-
-        if (!!S.var) {
-            const varf = variables[S.var];
-
-            if (_.isFunction(varf)) {
-                return varf(variables);
-            } else {
-                return nullify(varf);
-            }
-        }
-    }
-
+  
     const eval = (ast, variables) => {
         //L('eval!', '\r\n\tAST: ', ast, '\r\n\t Variables: ', variables);
         if (_.isString(ast) || _.isInteger(ast) || _.isBoolean(ast) || _.isFinite(ast)) {
@@ -161,15 +121,49 @@ const interpreter = (initial) => {
         }
 
         if (_.isArray(ast)) { // BExpression
-            if (_.isObject(ast[0])) { // Func / Var / ...
-                return evalS(ast[0], ast, variables);
-            } else {
-                throw "Unsupported type of node!";
+            const S = ast[0];
+
+            if (!!S.func) {
+                if (!functions[S.func]) {
+                    const varvalue = eval([{
+                        var: S.func
+                    }, ...ast.slice(1)], variables);
+
+                    if (varvalue) {
+                        return varvalue;
+                    }
+
+                    throw `Function '${S.func}' is undefined!`;
+                }
+
+                const f = functions[S.func];
+
+                const toVarFun = v => {
+                    const f = vars => eval(v, vars);
+
+                    f.__def__ = v;
+
+                    return f;
+                };
+
+                const args = _.drop(ast, 1).map(toVarFun);
+
+                return nullify(f.call(null, variables, ...args));
+            }
+
+            if (!!S.var) {
+                const varf = variables[S.var];
+
+                if (_.isFunction(varf)) {
+                    return varf(variables);
+                } else {
+                    return nullify(varf);
+                }
             }
         }
 
         if (_.isObject(ast)) {
-            return evalS(ast, ast, variables);
+            return eval([ast], variables);
         }
     };
 
