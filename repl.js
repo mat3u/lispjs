@@ -1,13 +1,20 @@
 const readline = require('readline');
 const lisp = require('./lisp');
-const stdlib = require('./stdlib');
+const fs = require('fs');
 
 let instance = lisp.interpreter({});
 
-for (expr of stdlib.expressions) {
-    //console.log(expr);
-    instance.run(expr);
+const runFile = path => {
+    fs.readFile(path, 'utf8', (err, file) => {
+        if (err) {
+            console.log(err);
+            return;
+        }
+        instance.run(file);
+    });
 }
+
+instance.run('(import "stdlib")')
 
 const rl = readline.createInterface({
     input: process.stdin,

@@ -1,34 +1,64 @@
-Program =
-	(BExpression / Comment)*
+Program = SExpr*
 
-BExpression =
-	v: (_ "(" Expression _ ")" / _ "(" BExpression ")" / _ _ Value / _ _ Variable / _ _ "(" ")") Comment? { return v[2] == "(" ? [] : v[2] }
+// Expressions
+SExpr =
+  //  s v:Func e { return [{func: v}] }
+  s s:SExpr e { return s; }
+  / Comment { return { comment: true }; }
+  / s e { return []; }
+  / v:Value { return v; }
+  / v:Func { return { var: text() }; }
+  / s f:Func args:(_ SExpr)* e { return [{ func: f }, ...args.map(a => a[1]).filter(a => !(a || {}).comment)]; }
 
-Expression =
-	_ v:(Value / Function) Comment? { return v; }
 
-Function = 
-	name: Name  args:BExpression* {
-        return [{ func: name }, ...args];
+// Functions
+Func = $[^"^\t^\n^\r^ ^(^)]+
+
+// Value types
+Value
+  = s v:Value e { return v; }
+  / v:(Nil / Number / Bool / String) { return v; }
+
+Bool =
+	"true"i { return true; }
+  / "false"i { return false; }
+
+Nil =
+	"'()" { return null; }
+  / "nil" { return null; }
+
+Number
+	= [+-]? ([0-9]* "." [0-9]+ / [0-9]+) ("e" [+-]? [0-9]+)? {
+      	return parseFloat(text());
     }
 
-Value = Float / Integer / Bool / Nil / Atom / String
+String
+  = '"' chars:DoubleChar* '"' { return chars.join(''); }
+  / "'" chars:SingleChar* "'" { return chars.join(''); }
 
-Nil = "nil" / "'()" { return null; }
-Bool = "true" / "false" { return (text() === "true" ? true : false); }
-Atom = "'" v:[^ ^\t^\n^\r^)]+ { return { atom: v.join('')}; }
-Integer = "-"? [0-9]+ { return parseInt(text(), 10); }
-Float = "-"? [0-9]+ [\.] [0-9]+ { return parseFloat(text()); }
+DoubleChar
+  = !('"' / "\\") char:. { return char; }
+  / "\\" sequence:Escape { return sequence; }
 
-String = '"' s:(StringChars*) '"' { return s.join(""); }
-StringChars = StringEscape / [^"]
-StringEscape = '\\\"' { return "\""; }
+SingleChar
+  = !("'" / "\\") char:. { return char; }
+  / "\\" sequence:Escape { return sequence; }
 
-Variable = _ Name { return { var: text().trim() }}
+Escape
+  = "'"
+  / '"'
+  / "\\"
+  / "b"  { return "\b";   }
+  / "f"  { return "\f";   }
+  / "n"  { return "\n";   }
+  / "r"  { return "\r";   }
+  / "t"  { return "\t";   }
+  / "v"  { return "\x0B"; }
 
-Name = n: (_ ([a-zA-Z]+[a-zA-Z0-9\-]*) / "(" Name ")" / _ [+-/*%!]) { return Array.isArray(n[1]) ? n[1].map(f => f.join('')).join('') : n[1]; }
+Comment = s Comment e / ";;" [^\n]* ([\n] / !.)
 
-Comment = _ ';;' [^\n]*
+s = _ "(" _
+e = _ ")" _
 
-_ "whitespace"
-  = [ \t\n\r]*
+_ "whitespace" = $[ \t\n\r]*
+__ "required_whitespace" = $[ \t\n\r]+

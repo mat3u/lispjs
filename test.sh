@@ -1,1 +1,1 @@
-node ./tests.js
+ls ./test | xargs -I{} node ./run.js ./test/{}
