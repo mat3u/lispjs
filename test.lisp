@@ -8,6 +8,5 @@
         (* N (factorial (- N 1)))
     ))
 
-    (let N (read-line '()))
-    (println (measure (lambda () (factorial N))))
+    (println (factorial 20))
 )
